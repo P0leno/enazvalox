@@ -10,76 +10,8 @@
 </head>
 <body>
     <div class="container">
-        <!-- Экран приветствия -->
-        <div id="welcomeScreen" class="screen active">
-            <header class="header">
-                <h1>🎓 Итоги школьного года</h1>
-                <p class="subtitle">Узнайте свою статистику за весь учебный год</p>
-            </header>
-            
-            <div class="welcome-content">
-                <div class="welcome-icon">📊</div>
-                <h2>Готовы узнать, как прошёл ваш учебный год?</h2>
-                <p class="welcome-description">
-                    Посмотрите детальную статистику вашей учёбы: пропуски, прогулы, домашние задания и многое другое!
-                </p>
-                <button class="btn btn-primary btn-large" onclick="generateResults()">
-                    📈 Посмотреть итоги
-                </button>
-            </div>
-        </div>
-
-        <!-- Экран с результатами -->
-        <div id="resultsScreen" class="screen">
-            <header class="header">
-                <h1>📊 Ваши итоги</h1>
-                <p class="subtitle">Статистика за учебный год</p>
-            </header>
-
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-icon">🏃</div>
-                    <div class="stat-value" id="skippedLessons">0</div>
-                    <div class="stat-label">Пропущено уроков</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">😴</div>
-                    <div class="stat-value" id="skippedWithoutReason">0</div>
-                    <div class="stat-label">Прогуляно уроков</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">🏖️</div>
-                    <div class="stat-value" id="restDays">0</div>
-                    <div class="stat-label">Дней отдыха</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">📝</div>
-                    <div class="stat-value" id="missedHomework">0</div>
-                    <div class="stat-label">Не выполнено ДЗ</div>
-                </div>
-            </div>
-
-            <section class="detailed-stats">
-                <h2>📋 Детальная статистика</h2>
-                <div class="stats-list" id="detailedStats">
-                    <!-- Детальная статистика будет добавлена динамически -->
-                </div>
-            </section>
-
-            <section class="fun-facts">
-                <h2>🎲 Интересные факты</h2>
-                <div class="facts-list" id="funFacts">
-                    <!-- Интересные факты будут добавлены динамически -->
-                </div>
-            </section>
-
-            <div class="actions">
-                <button class="btn btn-primary" onclick="regenerateResults()">🔄 Сгенерировать заново</button>
-                <button class="btn btn-secondary" onclick="backToWelcome()">🏠 На главную</button>
-            </div>
-        </div>
+        <!-- Контент будет вставлен динамически через JavaScript -->
     </div>
-
     <script src="app.js"></script>
 </body>
 </html>

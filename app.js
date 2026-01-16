@@ -1,19 +1,27 @@
 // Инициализация Telegram Mini App
 let tg = window.Telegram?.WebApp;
 
+// Определение страны пользователя
+let userCountry = 'ru'; // По умолчанию Россия
+let isBelarus = false;
+
 // Инициализация приложения при загрузке
 if (tg) {
     tg.ready();
-    tg.expand(); // Разворачиваем приложение на весь экран
+    tg.expand();
     console.log('Telegram Web App инициализирован');
+    
+    // Определение страны по языку пользователя
+    const userLanguage = tg.initDataUnsafe?.user?.language_code || 'ru';
+    if (userLanguage === 'be' || userLanguage === 'be-BY') {
+        userCountry = 'by';
+        isBelarus = true;
+    }
     
     // Настройка цветовой схемы Telegram
     tg.setHeaderColor('#667eea');
     tg.setBackgroundColor('#667eea');
 }
-
-// Данные результатов (для сохранения между сессиями)
-let currentResults = null;
 
 // Список всех предметов
 const subjects = [
@@ -22,57 +30,96 @@ const subjects = [
     'Информатика', 'Физкультура', 'ОБЖ', 'Музыка', 'ИЗО'
 ];
 
+// Данные пользователя (генерируются один раз и сохраняются)
+let userStats = null;
+let currentSlide = 0;
+
+// Функция для генерации уникального ID пользователя
+function getUserId() {
+    if (tg && tg.initDataUnsafe?.user?.id) {
+        return `user_${tg.initDataUnsafe.user.id}`;
+    }
+    return `user_${Date.now()}`;
+}
+
 // Функция для генерации случайного числа в диапазоне
 function random(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-// Функция для генерации данных об учебном годе
-function generateYearStats() {
-    // Базовое количество дней отдыха (например, 92 дня каникул)
+// Функция для генерации данных об учебном годе (один раз для каждого пользователя)
+function generateUserStats() {
+    const userId = getUserId();
+    const storageKey = `yearStats_${userId}`;
+    
+    // Проверяем, есть ли уже сохраненные данные
+    let savedStats = null;
+    try {
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+            savedStats = JSON.parse(saved);
+        }
+    } catch (e) {
+        console.error('Ошибка загрузки данных:', e);
+    }
+    
+    if (savedStats) {
+        return savedStats;
+    }
+    
+    // Генерируем новые данные
     const baseRestDays = 92;
-    const restDaysVariation = 5; // Разброс ±5 дней
-    const restDays = baseRestDays + random(-restDaysVariation, restDaysVariation);
+    const restDays = baseRestDays + random(-5, 5);
     
-    // Пропуски уроков (от 0 до 150)
-    const skippedLessons = random(0, 150);
-    
-    // Прогулянные уроки (от 0 до 50, обычно меньше чем пропуски по болезни)
-    const skippedWithoutReason = random(0, 50);
-    
-    // Невыполненные домашние задания (от 5 до 80)
-    const missedHomework = random(5, 80);
-    
-    // Опоздания (от 0 до 30)
-    const lateArrivals = random(0, 30);
-    
-    // Средний балл (от 3.5 до 5.0)
-    const averageGrade = (Math.random() * 1.5 + 3.5).toFixed(2);
-    
-    // Количество предметов с отличными оценками
-    const excellentGrades = random(0, 8);
-    
-    // Количество замечаний от учителей
-    const teacherRemarks = random(0, 15);
-    
-    // Самые часто пропускаемые предметы
-    const skippedSubjects = getRandomSubjects(random(2, 5));
-    
-    // Предметы с наибольшим количеством невыполненного ДЗ
-    const homeworkSubjects = getRandomSubjects(random(3, 6));
-    
-    return {
-        restDays,
-        skippedLessons,
-        skippedWithoutReason,
-        missedHomework,
-        lateArrivals,
-        averageGrade,
-        excellentGrades,
-        teacherRemarks,
-        skippedSubjects,
-        homeworkSubjects
+    const stats = {
+        // Пропуски (без учета каникул) - кто-то много болел
+        skippedLessons: random(45, 120),
+        
+        // Прогулянные уроки
+        skippedWithoutReason: random(8, 35),
+        
+        // Дни отдыха (каникулы)
+        restDays: restDays,
+        
+        // Невыполненные домашние задания (больше)
+        missedHomework: random(35, 95),
+        
+        // Опоздания (много)
+        lateArrivals: random(15, 45),
+        
+        // Средний балл (для России) или оценки (для Беларуси)
+        averageGrade: isBelarus ? random(6, 10) : (Math.random() * 1.3 + 3.5).toFixed(2),
+        
+        // Количество хороших отметок (4-5 для России, 7-10 для Беларуси)
+        goodGrades: random(25, 65),
+        
+        // Количество плохих отметок (2-3 для России, 1-5 для Беларуси)
+        badGrades: random(3, 15),
+        
+        // Замечания от учителей (много)
+        teacherRemarks: random(12, 28),
+        
+        // Время на переменах (в минутах за год)
+        breakTimeMinutes: random(1800, 2800),
+        
+        // Предметы с наибольшим количеством невыполненного ДЗ
+        homeworkSubjects: getRandomSubjects(random(4, 7)),
+        
+        // Предметы, которые чаще всего пропускали
+        skippedSubjects: getRandomSubjects(random(3, 6)),
     };
+    
+    // Сохраняем данные
+    try {
+        localStorage.setItem(storageKey, JSON.stringify(stats));
+        if (tg && tg.CloudStorage) {
+            tg.CloudStorage.setItem(storageKey, JSON.stringify(stats));
+        }
+    } catch (e) {
+        console.error('Ошибка сохранения данных:', e);
+    }
+    
+    return stats;
 }
 
 // Функция для получения случайных предметов
@@ -81,214 +128,193 @@ function getRandomSubjects(count) {
     return shuffled.slice(0, count);
 }
 
-// Функция для генерации интересных фактов
-function generateFunFacts(stats) {
-    const facts = [];
-    
-    if (stats.restDays > 95) {
-        facts.push({
-            icon: '🏖️',
-            text: `Вы отдохнули целых ${stats.restDays} дней! Это почти ${Math.round(stats.restDays / 30)} месяцев каникул!`
-        });
+// Слайды с данными
+const slides = [
+    {
+        type: 'welcome',
+        title: '🎓 Итоги школьного года',
+        subtitle: 'Нажмите в любое место, чтобы начать'
+    },
+    {
+        type: 'skipped',
+        icon: '😷',
+        title: 'Пропущенные уроки',
+        value: (stats) => stats.skippedLessons,
+        unit: 'уроков',
+        description: (stats) => `Кто-то много болел в этом году. Всего пропущено ${stats.skippedLessons} уроков без учета каникул.`
+    },
+    {
+        type: 'skipped_reason',
+        icon: '🏃',
+        title: 'Прогулянные уроки',
+        value: (stats) => stats.skippedWithoutReason,
+        unit: 'уроков',
+        description: (stats) => `Без уважительной причины пропущено ${stats.skippedWithoutReason} уроков.`
+    },
+    {
+        type: 'homework',
+        icon: '📝',
+        title: 'Невыполненные ДЗ',
+        value: (stats) => stats.missedHomework,
+        unit: 'заданий',
+        description: (stats) => `За год не выполнено ${stats.missedHomework} домашних заданий. Больше всего пропусков по: ${stats.homeworkSubjects.slice(0, 3).join(', ')}.`
+    },
+    {
+        type: 'breaks',
+        icon: '⏱️',
+        title: 'Время на переменах',
+        value: (stats) => Math.floor(stats.breakTimeMinutes / 60),
+        unit: 'часов',
+        description: (stats) => `Проведено ${Math.floor(stats.breakTimeMinutes / 60)} часов (${stats.breakTimeMinutes} минут) на переменах.`
+    },
+    {
+        type: 'grades',
+        icon: '⭐',
+        title: isBelarus ? 'Средняя оценка' : 'Средний балл',
+        value: (stats) => stats.averageGrade,
+        unit: isBelarus ? 'баллов' : '',
+        description: (stats) => isBelarus 
+            ? `Ваша средняя оценка: ${stats.averageGrade} баллов.`
+            : `Ваш средний балл: ${stats.averageGrade}.`
+    },
+    {
+        type: 'good_grades',
+        icon: '✅',
+        title: isBelarus ? 'Хорошие отметки' : 'Хорошие оценки',
+        value: (stats) => stats.goodGrades,
+        unit: 'штук',
+        description: (stats) => isBelarus 
+            ? `Получено ${stats.goodGrades} хороших отметок (7-10 баллов).`
+            : `Получено ${stats.goodGrades} хороших оценок (4-5).`
+    },
+    {
+        type: 'bad_grades',
+        icon: '❌',
+        title: isBelarus ? 'Плохие отметки' : 'Плохие оценки',
+        value: (stats) => stats.badGrades,
+        unit: 'штук',
+        description: (stats) => isBelarus 
+            ? `Получено ${stats.badGrades} плохих отметок (1-5 баллов).`
+            : `Получено ${stats.badGrades} плохих оценок (2-3).`
+    },
+    {
+        type: 'late',
+        icon: '⏰',
+        title: 'Опоздания',
+        value: (stats) => stats.lateArrivals,
+        unit: 'раз',
+        description: (stats) => `За год вы опоздали ${stats.lateArrivals} раз. Может, стоит просыпаться раньше?`
+    },
+    {
+        type: 'remarks',
+        icon: '⚠️',
+        title: 'Замечания',
+        value: (stats) => stats.teacherRemarks,
+        unit: 'раз',
+        description: (stats) => `Получено ${stats.teacherRemarks} замечаний от учителей.`
+    },
+    {
+        type: 'rest',
+        icon: '🏖️',
+        title: 'Дни отдыха',
+        value: (stats) => stats.restDays,
+        unit: 'дней',
+        description: (stats) => `Всего отдохнули ${stats.restDays} дней (каникулы).`
     }
-    
-    if (stats.skippedLessons > 100) {
-        facts.push({
-            icon: '😷',
-            text: `Вы пропустили ${stats.skippedLessons} уроков. Возможно, стоило больше заботиться о здоровье?`
-        });
-    } else if (stats.skippedLessons < 20) {
-        facts.push({
-            icon: '💪',
-            text: `Отличная посещаемость! Вы пропустили всего ${stats.skippedLessons} уроков!`
-        });
-    }
-    
-    if (stats.skippedWithoutReason > 30) {
-        facts.push({
-            icon: '🏃',
-            text: `Вы прогуляли ${stats.skippedWithoutReason} уроков без уважительной причины. Интересно, куда вы ходили?`
-        });
-    }
-    
-    if (stats.missedHomework > 60) {
-        facts.push({
-            icon: '📚',
-            text: `${stats.missedHomework} невыполненных домашних заданий! Это примерно ${Math.round(stats.missedHomework / 5)} недель работы.`
-        });
-    } else if (stats.missedHomework < 15) {
-        facts.push({
-            icon: '⭐',
-            text: `Превосходно! Вы выполнили почти все задания (пропущено только ${stats.missedHomework})!`
-        });
-    }
-    
-    if (stats.averageGrade >= 4.5) {
-        facts.push({
-            icon: '🏆',
-            text: `Ваш средний балл ${stats.averageGrade} - это отличный результат!`
-        });
-    } else if (stats.averageGrade < 4.0) {
-        facts.push({
-            icon: '📈',
-            text: `Средний балл ${stats.averageGrade}. Есть куда стремиться в следующем году!`
-        });
-    }
-    
-    if (stats.lateArrivals > 20) {
-        facts.push({
-            icon: '⏰',
-            text: `Вы опоздали ${stats.lateArrivals} раз. Может, стоит просыпаться раньше?`
-        });
-    }
-    
-    // Всегда добавляем хотя бы один общий факт
-    if (facts.length === 0) {
-        facts.push({
-            icon: '📊',
-            text: `Ваш учебный год был достаточно стабильным. Продолжайте в том же духе!`
-        });
-    }
-    
-    return facts;
-}
-
-// Функция для отображения результатов
-function displayResults(stats) {
-    // Обновляем основные карточки
-    document.getElementById('skippedLessons').textContent = stats.skippedLessons;
-    document.getElementById('skippedWithoutReason').textContent = stats.skippedWithoutReason;
-    document.getElementById('restDays').textContent = stats.restDays;
-    document.getElementById('missedHomework').textContent = stats.missedHomework;
-    
-    // Детальная статистика
-    const detailedStatsContainer = document.getElementById('detailedStats');
-    detailedStatsContainer.innerHTML = `
-        <div class="stat-item">
-            <div class="stat-item-icon">⏰</div>
-            <div class="stat-item-content">
-                <div class="stat-item-label">Опоздания</div>
-                <div class="stat-item-value">${stats.lateArrivals} раз</div>
-            </div>
-        </div>
-        <div class="stat-item">
-            <div class="stat-item-icon">⭐</div>
-            <div class="stat-item-content">
-                <div class="stat-item-label">Средний балл</div>
-                <div class="stat-item-value">${stats.averageGrade}</div>
-            </div>
-        </div>
-        <div class="stat-item">
-            <div class="stat-item-icon">🏆</div>
-            <div class="stat-item-content">
-                <div class="stat-item-label">Отличных оценок</div>
-                <div class="stat-item-value">${stats.excellentGrades} предметов</div>
-            </div>
-        </div>
-        <div class="stat-item">
-            <div class="stat-item-icon">⚠️</div>
-            <div class="stat-item-content">
-                <div class="stat-item-label">Замечаний от учителей</div>
-                <div class="stat-item-value">${stats.teacherRemarks}</div>
-            </div>
-        </div>
-        <div class="stat-item">
-            <div class="stat-item-icon">📚</div>
-            <div class="stat-item-content">
-                <div class="stat-item-label">Чаще всего пропускали</div>
-                <div class="stat-item-value">${stats.skippedSubjects.join(', ')}</div>
-            </div>
-        </div>
-        <div class="stat-item">
-            <div class="stat-item-icon">📝</div>
-            <div class="stat-item-content">
-                <div class="stat-item-label">Больше всего невыполненного ДЗ</div>
-                <div class="stat-item-value">${stats.homeworkSubjects.join(', ')}</div>
-            </div>
-        </div>
-    `;
-    
-    // Интересные факты
-    const facts = generateFunFacts(stats);
-    const factsContainer = document.getElementById('funFacts');
-    factsContainer.innerHTML = facts.map(fact => `
-        <div class="fact-item">
-            <div class="fact-icon">${fact.icon}</div>
-            <div class="fact-text">${fact.text}</div>
-        </div>
-    `).join('');
-}
-
-// Функция генерации результатов
-function generateResults() {
-    const stats = generateYearStats();
-    currentResults = stats;
-    
-    // Переключаем экраны
-    document.getElementById('welcomeScreen').classList.remove('active');
-    document.getElementById('resultsScreen').classList.add('active');
-    
-    // Показываем результаты
-    displayResults(stats);
-    
-    // Сохраняем результаты
-    saveResults(stats);
-}
-
-// Функция регенерации результатов
-function regenerateResults() {
-    generateResults();
-}
-
-// Функция возврата на главный экран
-function backToWelcome() {
-    document.getElementById('resultsScreen').classList.remove('active');
-    document.getElementById('welcomeScreen').classList.add('active');
-}
-
-// Функция сохранения результатов
-function saveResults(stats) {
-    localStorage.setItem('yearResults', JSON.stringify(stats));
-    
-    if (tg && tg.CloudStorage) {
-        tg.CloudStorage.setItem('yearResults', JSON.stringify(stats));
-    }
-}
-
-// Функция загрузки результатов
-function loadResults() {
-    try {
-        if (tg && tg.CloudStorage) {
-            tg.CloudStorage.getItem('yearResults', function(err, value) {
-                if (!err && value) {
-                    const savedStats = JSON.parse(value);
-                    if (savedStats) {
-                        currentResults = savedStats;
-                        // Можно автоматически показать результаты, если они есть
-                    }
-                }
-            });
-        }
-    } catch (e) {
-        console.error('Ошибка при загрузке результатов:', e);
-    }
-}
+];
 
 // Инициализация приложения
-document.addEventListener('DOMContentLoaded', function() {
-    loadResults();
+function initApp() {
+    // Генерируем/загружаем данные пользователя
+    userStats = generateUserStats();
     
+    // Показываем первый слайд (приветствие)
+    currentSlide = 0;
+    showSlide(0);
+    
+    // Добавляем обработчик клика для переключения слайдов
+    document.addEventListener('click', handleSlideClick);
+}
+
+// Обработчик клика для переключения слайдов
+function handleSlideClick(event) {
+    // Игнорируем клики по кнопкам
+    if (event.target.tagName === 'BUTTON' || event.target.closest('button')) {
+        return;
+    }
+    
+    // Переходим к следующему слайду
+    nextSlide();
+}
+
+// Переход к следующему слайду
+function nextSlide() {
+    if (currentSlide < slides.length - 1) {
+        currentSlide++;
+        showSlide(currentSlide);
+    } else {
+        // Если последний слайд - возвращаемся к началу
+        currentSlide = 0;
+        showSlide(0);
+    }
+}
+
+// Показ слайда
+function showSlide(index) {
+    const slide = slides[index];
+    const container = document.querySelector('.container');
+    
+    if (slide.type === 'welcome') {
+        container.innerHTML = `
+            <div class="slide welcome-slide">
+                <div class="slide-icon">🎓</div>
+                <h1 class="slide-title">${slide.title}</h1>
+                <p class="slide-subtitle">${slide.subtitle}</p>
+                <div class="slide-hint">👆 Нажмите в любом месте</div>
+            </div>
+        `;
+    } else {
+        const value = slide.value(userStats);
+        const description = slide.description(userStats);
+        
+        container.innerHTML = `
+            <div class="slide data-slide">
+                <div class="slide-icon large">${slide.icon}</div>
+                <h2 class="slide-title">${slide.title}</h2>
+                <div class="slide-value">
+                    <span class="value-number">${value}</span>
+                    ${slide.unit ? `<span class="value-unit">${slide.unit}</span>` : ''}
+                </div>
+                <p class="slide-description">${description}</p>
+                <div class="slide-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${Math.min(100, (currentSlide / (slides.length - 1)) * 100)}%"></div>
+                    </div>
+                    <span class="progress-text">${currentSlide} / ${slides.length - 1}</span>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Анимация появления
+    container.style.opacity = '0';
+    setTimeout(() => {
+        container.style.opacity = '1';
+    }, 50);
+}
+
+// Инициализация при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
     console.log('Приложение инициализировано');
+    console.log('Страна пользователя:', isBelarus ? 'Беларусь' : 'Россия');
+    
+    initApp();
     
     // Показываем кнопку "Назад" если приложение открыто в Telegram
     if (tg) {
         tg.BackButton.show();
         tg.BackButton.onClick(() => {
-            if (document.getElementById('resultsScreen').classList.contains('active')) {
-                backToWelcome();
-            } else {
-                tg.close();
-            }
+            tg.close();
         });
     }
 });
