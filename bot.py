@@ -75,12 +75,13 @@ def save_stats():
 
 def is_admin(user_id: int) -> bool:
     """Проверка, является ли пользователь администратором"""
-    return user_id in ADMIN_IDS or len(ADMIN_IDS) == 0
+    # Строгая проверка - только если ID в списке админов и список не пустой
+    return len(ADMIN_IDS) > 0 and user_id in ADMIN_IDS
 
 
-def get_main_keyboard(webapp_url: str) -> InlineKeyboardMarkup:
+def get_main_keyboard(webapp_url: str, show_admin: bool = False) -> InlineKeyboardMarkup:
     """Создание основной клавиатуры с кнопкой миниприложения"""
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+    keyboard_buttons = [
         [
             InlineKeyboardButton(
                 text="📊 Открыть приложение",
@@ -91,7 +92,15 @@ def get_main_keyboard(webapp_url: str) -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="ℹ️ Помощь", callback_data="help"),
             InlineKeyboardButton(text="📈 Статистика", callback_data="stats")
         ]
-    ])
+    ]
+    
+    # Добавляем кнопку админ-панели только для админов
+    if show_admin:
+        keyboard_buttons.append([
+            InlineKeyboardButton(text="⚙️ Админ-панель", callback_data="admin_panel")
+        ])
+    
+    keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
     return keyboard
 
 
@@ -108,6 +117,9 @@ def get_admin_keyboard() -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(text="⚙️ Настройки", callback_data="admin_settings")
+        ],
+        [
+            InlineKeyboardButton(text="🏠 Домой", callback_data="home")
         ]
     ])
     return keyboard
@@ -150,7 +162,7 @@ async def cmd_start(message: types.Message):
 💡 Используйте /help для получения помощи
 """
     
-    keyboard = get_main_keyboard(WEBAPP_URL)
+    keyboard = get_main_keyboard(WEBAPP_URL, show_admin=is_admin(user_id))
     await message.answer(welcome_text, reply_markup=keyboard, parse_mode='HTML')
 
 
@@ -164,7 +176,6 @@ async def cmd_help(message: types.Message):
 <b>Основные команды:</b>
 /start - Запустить бота и открыть приложение
 /help - Показать эту справку
-/stats - Ваша личная статистика
 
 <b>Как пользоваться:</b>
 1. Нажмите кнопку "📊 Открыть приложение"
@@ -172,12 +183,10 @@ async def cmd_help(message: types.Message):
 3. Следите за своим прогрессом
 4. Получайте достижения!
 
-<b>Для администраторов:</b>
-/admin - Открыть админ-панель
-
 Если у вас возникли вопросы, напишите администратору.
 """
-    await message.answer(help_text, parse_mode='HTML')
+    keyboard = get_main_keyboard(WEBAPP_URL, show_admin=is_admin(message.from_user.id))
+    await message.answer(help_text, reply_markup=keyboard, parse_mode='HTML')
 
 
 # Обработчик команды /admin
@@ -198,6 +207,53 @@ async def cmd_admin(message: types.Message):
     await message.answer(admin_text, reply_markup=get_admin_keyboard(), parse_mode='HTML')
 
 
+# Обработчик кнопки "Домой"
+@dp.callback_query(F.data == "home")
+async def callback_home(callback: types.CallbackQuery):
+    """Возврат в главное меню"""
+    user_id = callback.from_user.id
+    username = callback.from_user.username or callback.from_user.first_name
+    
+    welcome_text = f"""
+🎓 <b>Добро пожаловать, {username}!</b>
+
+Привет! Я бот для миниприложения <b>"Итоги школьного года"</b>.
+
+📚 С моей помощью вы можете:
+• Отслеживать свои оценки по предметам
+• Просматривать статистику успеваемости
+• Получать достижения за успехи в учебе
+• Анализировать свой прогресс
+
+🚀 <b>Нажмите на кнопку ниже, чтобы открыть приложение!</b>
+
+💡 Используйте /help для получения помощи
+"""
+    
+    keyboard = get_main_keyboard(WEBAPP_URL, show_admin=is_admin(user_id))
+    await callback.answer()
+    await callback.message.edit_text(welcome_text, reply_markup=keyboard, parse_mode='HTML')
+
+
+# Обработчик кнопки "Админ-панель" из главного меню
+@dp.callback_query(F.data == "admin_panel")
+async def callback_admin_panel(callback: types.CallbackQuery):
+    """Открытие админ-панели через кнопку"""
+    user_id = callback.from_user.id
+    
+    if not is_admin(user_id):
+        await callback.answer("❌ У вас нет прав администратора.", show_alert=True)
+        return
+    
+    admin_text = """
+⚙️ <b>Админ-панель</b>
+
+Выберите действие:
+"""
+    await callback.answer()
+    await callback.message.edit_text(admin_text, reply_markup=get_admin_keyboard(), parse_mode='HTML')
+
+
 # Обработчик статистики
 @dp.callback_query(F.data == "stats")
 async def callback_stats(callback: types.CallbackQuery):
@@ -216,14 +272,20 @@ async def callback_stats(callback: types.CallbackQuery):
     else:
         stats_text = "📈 Статистика недоступна."
     
+    # Добавляем кнопку "Домой"
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🏠 Домой", callback_data="home")]
+    ])
+    
     await callback.answer()
-    await callback.message.edit_text(stats_text, parse_mode='HTML')
+    await callback.message.edit_text(stats_text, reply_markup=keyboard, parse_mode='HTML')
 
 
 # Обработчик помощи
 @dp.callback_query(F.data == "help")
 async def callback_help(callback: types.CallbackQuery):
     """Показать помощь"""
+    user_id = callback.from_user.id
     help_text = """
 ℹ️ <b>Помощь</b>
 
@@ -234,8 +296,9 @@ async def callback_help(callback: types.CallbackQuery):
 • Просмотр статистики
 • Получение достижений
 """
+    keyboard = get_main_keyboard(WEBAPP_URL, show_admin=is_admin(user_id))
     await callback.answer()
-    await callback.message.edit_text(help_text, parse_mode='HTML')
+    await callback.message.edit_text(help_text, reply_markup=keyboard, parse_mode='HTML')
 
 
 # === АДМИН ПАНЕЛЬ ===
@@ -260,7 +323,7 @@ async def callback_admin_stats(callback: types.CallbackQuery):
 """
     
     await callback.answer()
-    await callback.message.edit_text(stats_text, parse_mode='HTML')
+    await callback.message.edit_text(stats_text, reply_markup=get_admin_keyboard(), parse_mode='HTML')
 
 
 @dp.callback_query(F.data == "admin_users")
@@ -287,7 +350,7 @@ async def callback_admin_users(callback: types.CallbackQuery):
         users_text += f"\n... и ещё {len(users_data) - 10} пользователей"
     
     await callback.answer()
-    await callback.message.edit_text(users_text, parse_mode='HTML')
+    await callback.message.edit_text(users_text, reply_markup=get_admin_keyboard(), parse_mode='HTML')
 
 
 @dp.callback_query(F.data == "admin_seturl")
@@ -396,7 +459,7 @@ async def callback_admin_settings(callback: types.CallbackQuery):
 """
     
     await callback.answer()
-    await callback.message.edit_text(settings_text, parse_mode='HTML')
+    await callback.message.edit_text(settings_text, reply_markup=get_admin_keyboard(), parse_mode='HTML')
 
 
 # Обработчик команды /setwebapp
@@ -442,7 +505,7 @@ async def echo_message(message: types.Message):
     stats['messages_sent'] += 1
     save_stats()
     
-    keyboard = get_main_keyboard(WEBAPP_URL)
+    keyboard = get_main_keyboard(WEBAPP_URL, show_admin=is_admin(user_id))
     await message.answer(
         "👋 Привет! Используйте /start для начала работы или нажмите кнопку ниже:",
         reply_markup=keyboard
