@@ -1,0 +1,16 @@
+{
+  "name": "school-year-results-miniapp",
+  "version": "1.0.0",
+  "description": "Мини-приложение для отслеживания итогов школьного года",
+  "scripts": {
+    "start": "python3 -m http.server 8000 || python -m http.server 8000 || npx http-server -p 8000"
+  },
+  "keywords": [
+    "miniapp",
+    "telegram",
+    "school",
+    "education"
+  ],
+  "author": "",
+  "license": "MIT"
+}

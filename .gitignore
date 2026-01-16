@@ -1,0 +1,42 @@
+# Файлы, которые не нужно коммитить в Git
+
+# Токены и секреты (НЕ КОММИТЬТЕ!)
+*.token
+*.key
+*.secret
+.env
+config.json
+
+# Данные бота
+stats.json
+users_data.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# Системные файлы
+.DS_Store
+Thumbs.db
+
+# Редакторы
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Логи
+*.log
+npm-debug.log*
+bot.log
+
+# Временные файлы
+*.tmp
+*.temp
