@@ -10,75 +10,72 @@
 </head>
 <body>
     <div class="container">
-        <header class="header">
-            <h1>🎓 Итоги школьного года</h1>
-            <p class="subtitle">Ваш прогресс и достижения</p>
-        </header>
-
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon">📊</div>
-                <div class="stat-value" id="averageGrade">-</div>
-                <div class="stat-label">Средний балл</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">✅</div>
-                <div class="stat-value" id="totalSubjects">0</div>
-                <div class="stat-label">Предметов изучено</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">⭐</div>
-                <div class="stat-value" id="excellentCount">0</div>
-                <div class="stat-label">Отличных оценок</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">📈</div>
-                <div class="stat-value" id="improvement">0%</div>
-                <div class="stat-label">Прогресс</div>
+        <!-- Экран приветствия -->
+        <div id="welcomeScreen" class="screen active">
+            <header class="header">
+                <h1>🎓 Итоги школьного года</h1>
+                <p class="subtitle">Узнайте свою статистику за весь учебный год</p>
+            </header>
+            
+            <div class="welcome-content">
+                <div class="welcome-icon">📊</div>
+                <h2>Готовы узнать, как прошёл ваш учебный год?</h2>
+                <p class="welcome-description">
+                    Посмотрите детальную статистику вашей учёбы: пропуски, прогулы, домашние задания и многое другое!
+                </p>
+                <button class="btn btn-primary btn-large" onclick="generateResults()">
+                    📈 Посмотреть итоги
+                </button>
             </div>
         </div>
 
-        <section class="subjects-section">
-            <h2>Предметы</h2>
-            <div class="subjects-list" id="subjectsList">
-                <!-- Предметы будут добавлены динамически -->
+        <!-- Экран с результатами -->
+        <div id="resultsScreen" class="screen">
+            <header class="header">
+                <h1>📊 Ваши итоги</h1>
+                <p class="subtitle">Статистика за учебный год</p>
+            </header>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">🏃</div>
+                    <div class="stat-value" id="skippedLessons">0</div>
+                    <div class="stat-label">Пропущено уроков</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">😴</div>
+                    <div class="stat-value" id="skippedWithoutReason">0</div>
+                    <div class="stat-label">Прогуляно уроков</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🏖️</div>
+                    <div class="stat-value" id="restDays">0</div>
+                    <div class="stat-label">Дней отдыха</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📝</div>
+                    <div class="stat-value" id="missedHomework">0</div>
+                    <div class="stat-label">Не выполнено ДЗ</div>
+                </div>
             </div>
-        </section>
 
-        <section class="achievements-section">
-            <h2>🏆 Достижения</h2>
-            <div class="achievements-list" id="achievementsList">
-                <!-- Достижения будут добавлены динамически -->
-            </div>
-        </section>
+            <section class="detailed-stats">
+                <h2>📋 Детальная статистика</h2>
+                <div class="stats-list" id="detailedStats">
+                    <!-- Детальная статистика будет добавлена динамически -->
+                </div>
+            </section>
 
-        <div class="actions">
-            <button class="btn btn-primary" onclick="addSubject()">+ Добавить предмет</button>
-            <button class="btn btn-secondary" onclick="clearData()">Очистить данные</button>
-        </div>
+            <section class="fun-facts">
+                <h2>🎲 Интересные факты</h2>
+                <div class="facts-list" id="funFacts">
+                    <!-- Интересные факты будут добавлены динамически -->
+                </div>
+            </section>
 
-        <!-- Модальное окно для добавления предмета -->
-        <div id="subjectModal" class="modal">
-            <div class="modal-content">
-                <span class="close" onclick="closeModal()">&times;</span>
-                <h2>Добавить предмет</h2>
-                <form id="subjectForm" onsubmit="saveSubject(event)">
-                    <div class="form-group">
-                        <label for="subjectName">Название предмета:</label>
-                        <input type="text" id="subjectName" required placeholder="Например: Математика">
-                    </div>
-                    <div class="form-group">
-                        <label for="subjectGrade">Оценка:</label>
-                        <select id="subjectGrade" required>
-                            <option value="">Выберите оценку</option>
-                            <option value="5">5 (Отлично)</option>
-                            <option value="4">4 (Хорошо)</option>
-                            <option value="3">3 (Удовлетворительно)</option>
-                            <option value="2">2 (Неудовлетворительно)</option>
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Сохранить</button>
-                </form>
+            <div class="actions">
+                <button class="btn btn-primary" onclick="regenerateResults()">🔄 Сгенерировать заново</button>
+                <button class="btn btn-secondary" onclick="backToWelcome()">🏠 На главную</button>
             </div>
         </div>
     </div>

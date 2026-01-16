@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 BOT_TOKEN = os.getenv('BOT_TOKEN', '7962013308:AAFbwbd8B99dVU13Za8967ON2S52B9j40Lg')
 
 # ID администраторов (добавьте свои ID через запятую)
-ADMIN_IDS = [int(id.strip()) for id in os.getenv('ADMIN_IDS', '').split(',') if id.strip()]
+ADMIN_IDS = [int(id.strip()) for id in os.getenv('ADMIN_IDS', '6252527489').split(',') if id.strip()]
 
 # URL миниприложения (будет установлен через команду /setwebapp)
 WEBAPP_URL = os.getenv('WEBAPP_URL', 'https://P0leno.github.io/enazvalox/')
